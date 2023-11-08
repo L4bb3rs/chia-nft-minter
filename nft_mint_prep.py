@@ -44,17 +44,17 @@ def nft_prep_nft(nft_data_path, nft_metadata_path, nft_license_path, nft_minting
         sys.exit(f"ERROR: data dir not found in {nft_data_path}")
     if os.path.exists(nft_metadata_path) != True:
         sys.exit(f"ERROR: metadata dir not found in: {nft_metadata_path}")
-    
+
     try:
         if os.path.exists(nft_minting_data_output_path) != True:
             os.mkdir(nft_minting_data_output_path)
     except Exception as e:
         print(e)
         sys.exit(f"ERROR creating {nft_minting_data_output_path}")
-    
+
     print(f"Creating minting data in {nft_minting_data_output_path} ...")
-    
-    
+
+
     # Store hashes into a dict and write to disk after it's populated
     # hashes_dict = {
     #     "01": {
@@ -62,49 +62,49 @@ def nft_prep_nft(nft_data_path, nft_metadata_path, nft_license_path, nft_minting
     #         "metadata_hash": "..."
     #     }
     # }
-    
+
     hashes_dict = {}
-    
+
     ### PARSE DATA
     data_hashes = hashes_in_dir(nft_data_path, file_extension_to_check=".png")
-    
+
     ### PARSE METADATA
     metadata_hashes = hashes_in_dir(nft_metadata_path, file_extension_to_check=".json")
-    
+
     ### PARSE LICENSE
     # TODO: This should only look for 1 file
     license_hash = checksum(nft_license_path)
-    
+
     ### ASSMEMBLE HASHES
     # TODO: This should probably be parametarized / improved
     dir_enumerator = os.listdir(nft_metadata_path)
     dirs_sorted = sorted(dir_enumerator)
-    
+
     for count, filename in enumerate(dirs_sorted):
         
         index = count - 1
         path = os.path.join(nft_metadata_path, filename)
-        
+
         file_stem = pathlib.Path(filename).stem
         file_extension = pathlib.Path(filename).suffix
-        
+
         if file_extension != ".json":
             continue
-        
+
         try:
             data_hash = data_hashes[index]
             metadata_hash = metadata_hashes[index]
             hashes_dict[f"{file_stem}"] = {"data_hash":f"{data_hash}", "metadata_hash":f"{metadata_hash}"}
-            
-            
+
+
             data_uri_full = f"{uri_data_ipfs}/{file_stem}.png"
             metadata_uri_full = f"{uri_metadata_ipfs}/{file_stem}.json"
             license_uri_full = uri_license_ipfs
-            
+
             # TODO: remember the following are not here and instead of in the minter:
             # edition_number
             # wallet_id
-            
+
             minting_metadata = {
                 "uris": [data_uri_full],
                 "hash": data_hash,
@@ -117,9 +117,11 @@ def nft_prep_nft(nft_data_path, nft_metadata_path, nft_license_path, nft_minting
                 "target_address": target_address,
                 "royalty_percentage": royalty_percentage
             }
-            
+
             try:
-                minting_filedata_path = os.path.join(nft_minting_data_output_path, file_stem + ".json")
+                minting_filedata_path = os.path.join(
+                    nft_minting_data_output_path, f"{file_stem}.json"
+                )
                 with open(minting_filedata_path, 'w', encoding='utf8') as outfile:
                     json.dump(minting_metadata, outfile, sort_keys=False, indent=4, ensure_ascii=False)
             except Exception as e:
@@ -128,12 +130,12 @@ def nft_prep_nft(nft_data_path, nft_metadata_path, nft_license_path, nft_minting
         except Exception as e:
             print(e)
             sys.exit(f"ERROR reading {path}")
-    
-    
+
+
     print('-----------')
     # print all
     print(json.dumps(hashes_dict, sort_keys=False, indent=4))
-    
+
     # print last one for inspection
     print(json.dumps(minting_metadata, sort_keys=False, indent=4))
     print('-----------')

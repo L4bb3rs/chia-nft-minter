@@ -21,83 +21,83 @@ def chia_wallet_get_balance(wallet_id):
     print("get wallet balance ...")
     wallet_id_str = str(wallet_id)
     command  = "chia rpc wallet get_wallet_balance '{\"wallet_id\": "+ wallet_id_str + "}'"
-    
+
     if IS_DRY_RUN == True:
         print(command)
-    
+
     with Popen(command, stdout=PIPE, stderr=None, shell=True) as process:
         output = process.communicate()[0].decode("utf-8")
         # print(output)
-    
+
     try:
         wallet_response_json = json.loads(output)
-        
+
         if IS_DRY_RUN == True:
             print('-----debug------')
             print(json.dumps(wallet_response_json, sort_keys=False, indent=4))
             print('-----debug------')
-        
+
         if wallet_response_json["success"] == True:
             wallet_balance_json = wallet_response_json["wallet_balance"]
         else:
-            sys.exit(f"ERROR getting wallet balance")
-        
+            sys.exit("ERROR getting wallet balance")
+
     except Exception as e:
         print(e)
         sys.exit(f"ERROR reading {wallet_json}")
-    
+
     if IS_DRY_RUN == True:
         print('-----------')
         print(json.dumps(wallet_response_json, sort_keys=False, indent=4))
         print('-----------')
-    
+
     return wallet_balance_json
 
 def chia_mint(minter_data):
     print('-------------')
     print("STARTING MINT")
-    
+
     while True:
         can_mint = False
-        
+
         if IS_DRY_RUN == True:
             sleep_before_minting = MINT_SLEEP_IN_SECONDS_DRY_RUN
         else:
             sleep_before_minting = MINT_SLEEP_IN_SECONDS
-        
-        
+
+
         print(f"minter sleeping {sleep_before_minting}...")
         time.sleep(sleep_before_minting)
-        
+
         output = chia_wallet_get_balance(CHIA_WALLET_ID_TO_CHECK_FOR_FEES_WHILE_MINTING)
         standard_balance = output["spendable_balance"]
         standard_total = output["confirmed_wallet_balance"]
-        
+
         print('~~~~~~~~')
         print(standard_balance)
         print(standard_total)
         print('~~~~~~~~')
-        
+
         # if standard_balance > 0 and standard_balance == standard_total:
         if standard_balance > 0 and standard_balance > CHIA_MOJOS_BALANCE_REQUIREMENT_IN_WALLET_BEFORE_MINTING:
             can_mint = True
-        
-        if can_mint is False:
+
+        if not can_mint:
             print("not yet, soon...")
             continue
-        
+
         print("mint goooooo...")
         minter_json_string = json.dumps(minter_data, sort_keys=False)
-        minter_command  = "chia rpc wallet nft_mint_nft '" + minter_json_string + "'"
-        
+        minter_command = f"chia rpc wallet nft_mint_nft '{minter_json_string}'"
+
         if IS_DRY_RUN == True:
             print(minter_command)
         else:
-            print("minting using: " + minter_command)
+            print(f"minting using: {minter_command}")
             with Popen(minter_command, stdout=PIPE, stderr=None, shell=True) as process:
                 output = process.communicate()[0].decode("utf-8")
                 print(output)
-        
+
         break
     
 
